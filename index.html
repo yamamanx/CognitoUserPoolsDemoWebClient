@@ -1,0 +1,182 @@
+<head>
+  <meta charset="UTF-8" />
+  <title>Demoサイト</title>
+  <script src="aws-sdk.js"></script>
+  <script src="aws-cognito-sdk.js"></script>
+  <script src="jquery-3.0.0.min.js"></script>
+  <script src="amazon-cognito-identity.min.js"></script>
+  <script type="text/javascript" src="jsbn.js"></script>
+  <script type="text/javascript" src="jsbn2.js"></script>
+  <script type="text/javascript" src="sjcl.js"></script>
+  <script type="text/javascript" src="moment.js"></script>
+  <script type="text/javascript">
+    AWS.config.region = 'us-east-1';
+    AWS.config.credentials = new AWS.CognitoIdentityCredentials({
+      IdentityPoolId: 'us-east-1:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+    });
+
+    AWSCognito.config.region = 'us-east-1';
+    AWSCognito.config.credentials = new AWS.CognitoIdentityCredentials({
+      IdentityPoolId: 'us-east-1:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+    });
+
+    var poolData = {
+      UserPoolId : 'us-east-1_xxxxxxxx',
+      ClientId: 'xxxxxxxxxxxxxxxxxxxxxx'
+    };
+    var userPool = new AWSCognito.CognitoIdentityServiceProvider.CognitoUserPool(poolData);
+
+    function sineUp(){
+      var attributeList = [];
+      var dataEmail = {
+        Name : 'email',
+        Value : $('#email').val()
+      };
+      var attributeEmail = new AWSCognito.CognitoIdentityServiceProvider.CognitoUserAttribute(dataEmail);
+      attributeList.push(attributeEmail);
+      userPool.signUp($('#email').val(), $('#password').val(), attributeList, null, function(err, result){
+        if (err) {
+          console.log(err);
+          return;
+        }
+        cognitoUser = result.user;
+        console.log('user name is ' + cognitoUser.getUsername());
+        console.log('call result: ' + result);
+        $('#sineup').addClass('hidden');
+        $('#activation').removeClass('hidden');
+      });
+    }
+
+    function activation(){
+      var userData = {
+        Username : $('#actemail').val(),
+        Pool : userPool
+      };
+      var cognitoUser = new AWSCognito.CognitoIdentityServiceProvider.CognitoUser(userData);
+      cognitoUser.confirmRegistration($('#actcode').val(), true, function(err, result) {
+        if (err) {
+          alert(err);
+          return;
+        }
+        console.log('call result: ' + result);
+        $('#activation').addClass('hidden');
+        $('#login').removeClass('hidden');
+      });
+    }
+
+    function login(){
+      var authenticationData = {
+        Username : $('#loginemail').val(),
+        Password : $('#loginpassword').val()
+      };
+      var authenticationDetails = new AWSCognito.CognitoIdentityServiceProvider.AuthenticationDetails(authenticationData);
+      var userData = {
+        Username : $('#loginemail').val(),
+        Pool : userPool
+      };
+      var cognitoUser = new AWSCognito.CognitoIdentityServiceProvider.CognitoUser(userData);
+      cognitoUser.authenticateUser(authenticationDetails, {
+        onSuccess: function (result) {
+          console.log('access token + ' + result.getAccessToken().getJwtToken());
+          $('#login').addClass('hidden');
+          $('#success').removeClass('hidden');
+          $('#token').html('access token : ' + result.getAccessToken().getJwtToken());
+        },
+        onFailure: function(err) {
+          alert(err);
+        },
+      });
+    }
+
+    function FormChange(type){
+      if (type == 1){
+        $('#sineup').removeClass('hidden');
+        $('#activation').addClass('hidden');
+        $('#login').addClass('hidden');
+        $('#success').addClass('hidden');
+      }else if (type == 2){
+        $('#sineup').addClass('hidden');
+        $('#activation').removeClass('hidden');
+        $('#login').addClass('hidden');
+        $('#success').addClass('hidden');
+      }else if (type == 3){
+        $('#sineup').addClass('hidden');
+        $('#activation').addClass('hidden');
+        $('#login').removeClass('hidden');
+        $('#success').addClass('hidden');
+      }
+    }
+  </script>
+  <style type="text/css">
+    .hidden{
+      display:none;
+    }
+    .arrow_button{
+      margin-top:20px;
+      font-size: 1.4em;
+      font-weight: bold;
+      padding: 10px 30px;
+      background-color: #248;
+      color: #fff;
+      border-style: none;
+      -moz-border-radius: 5px;
+      -webkit-border-radius: 5px;
+      border-radius: 5px;
+    }
+    .arrow_button:hover{
+      background-color: #24d;
+      color: #fff;
+    }
+    .button_area{
+      margin-top:5px;
+    }
+  </style>
+</head>
+<body>
+  <div id = "menu_tag">
+    <input onClick="FormChange(1);" type="button" value="sineup_form"/>
+    <input onClick="FormChange(2);" type="button" value="activation_form"/>
+    <input onClick="FormChange(3);" type="button" value="login_form"/>
+  </div>
+  <div id = "sineup" class = "">
+    <h2>SineUp!!!!</h2>
+    <div class="button_area">
+      Email : <input type="email" id="email"/>
+    </div>
+    <div class="button_area">
+      Pass  : <input type="password" id="password"/>
+    </div>
+    <div class="button_area">
+      <input onClick="sineUp();" type="button" value="SineUp!" class="arrow_button"/>
+    </div>
+  </div>
+  <div id = "activation" class = "hidden">
+    <h2>Activation!!!!</h2>
+    <div class="button_area">
+      Email : <input type="email" id="actemail"/>
+    </div>
+    <div class="button_area">
+      Code : <input type="text" id="actcode"/>
+    </div>
+    <div class="button_area">
+      <input onClick="activation();" type="button" value="Activation!" class="arrow_button"/>
+    </div>
+  </div>
+  <div id = "login" class = "hidden">
+    <h2>Login!!!!</h2>
+    <div class="button_area">
+      Email : <input type="email" id="loginemail"/>
+    </div>
+    <div class="button_area">
+      Pass  : <input type="password" id="loginpassword"/>
+    </div>
+    <div class="button_area">
+      <input onClick="login();" type="button" value="Login!" class="arrow_button"/>
+    </div>
+  </div>
+  <div id = "success" class= "hidden">
+    <h2>LoginSuccess!!!!!!!!!!!</h2>
+    <image src="jaws-ug-osaka.png"></image>
+    <h3 id = "token"></h3>
+  </div>
+</body>
